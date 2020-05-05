@@ -114,9 +114,14 @@ const int TrackData::GetSampleRate() {
 }
 
 const unsigned int TrackData::GetDiscNumber() {
-    if(!f->tag()->properties()["DISCNUMBER"].isEmpty()) {
-        TagLib::String discNumber = f->tag()->properties()["DISCNUMBER"].front();
-        return static_cast<unsigned int>(stoul(discNumber.to8Bit()));
+    try {
+        if(!f->tag()->properties()["DISCNUMBER"].isEmpty()) {
+            TagLib::String discNumber = f->tag()->properties()["DISCNUMBER"].front();
+            return static_cast<unsigned int>(stoul(discNumber.to8Bit()));
+        }
+    }
+    catch (std::exception) {
+        return 1;
     }
     return 1;
 }

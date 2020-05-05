@@ -7,8 +7,8 @@ description = "Rust bindings for the Track interface of katatsuki"
 license = "MIT"
 
 [dependencies]
-libc = "0.2"
+libc = "0.2.69"
 
 [build-dependencies]
-cmake = "0.1"
-bindgen = "0.26.3"
+cmake = "0.1.42"
+bindgen = "0.53.2"

@@ -171,6 +171,7 @@ impl Track {
                 } else {
                     let mut fcw = 0;
                     let mut fch = 0;
+                    let mut art: Vec<u8> = Vec::new();
                     if track.has_front_cover() {
                         let bytes = unsafe { track.cover_bytes(384) };
                         let slice = unsafe { from_raw_parts(bytes.raw, 384) };
@@ -184,6 +185,7 @@ impl Track {
                         if let Ok(size) = blob_size(slice) {
                             fcw = size.width as i32;
                             fch = size.height as i32;
+                            art = slice.to_owned();
                             // println!("Width: {}, Height: {}", fcw, fch);
                         }
                         // } else {
@@ -217,6 +219,7 @@ impl Track {
                         disc_number: track.disc_number() as i32,
                         duration: track.duration() as i32,
                         updated: Local::now().format("%Y-%m-%d").to_string(),
+                        album_art: art
                     });
                     drop(path_ptr);
                     track

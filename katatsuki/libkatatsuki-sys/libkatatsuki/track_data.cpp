@@ -97,7 +97,13 @@ extern "C" const unsigned char* get_album_art_bytes(track_data* track_data, size
     auto bytes = trackData->GetAlbumArtBytes();
     if (bytes) {
         unsigned char *copy = new unsigned char[size];
-        memcpy(copy, bytes->data(), size);
+        if (size > bytes->size()) {
+            memcpy(copy, bytes->data(), bytes->size());
+        }
+        else {
+            memcpy(copy, bytes->data(), size);
+        }
+        
         return copy;
     }
     return nullptr;

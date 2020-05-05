@@ -104,6 +104,7 @@ pub struct Track {
     pub disc_number: i32,
     pub duration: i32,
     pub updated: String,
+    pub album_art: Vec<u8>
 }
 
 /// Converts a lowercase string representation of a 
