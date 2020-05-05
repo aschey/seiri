@@ -6,9 +6,9 @@ description = "TagLib-based Music Tag Library"
 license = "MIT"
 keywords = ["taglib", "music", "tags", "metadata"]
 [dependencies]
-libc = "0.2"
+libc = "0.2.69"
 chrono = "0.4"
 enum-primitive-derive = "^0.1"
 num-traits = "^0.1"
 imagesize = "0.5.2"
-libkatatsuki-sys = "1.0.9"
+libkatatsuki-sys = { git = "https://github.com/aschey/seiri" }
