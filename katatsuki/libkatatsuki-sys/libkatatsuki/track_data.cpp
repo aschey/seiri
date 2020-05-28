@@ -81,32 +81,18 @@ extern "C" const int get_sample_rate(track_data* track_data) {
     return trackData->GetSampleRate();
 }
 
-extern "C" const unsigned char* get_album_art_all_bytes(track_data* track_data) {
+extern "C" const art_bytes get_album_art_bytes(track_data* track_data) {
     auto* trackData = reinterpret_cast<TrackData*>(track_data);
     auto bytes = trackData->GetAlbumArtBytes();
+    art_bytes ab;
     if (bytes) {
         unsigned char *copy = new unsigned char[bytes->size()];
         memcpy(copy, bytes->data(), bytes->size());
-        return copy;
+        ab.data = copy;
+        ab.size = bytes->size();
+        return ab;
     }
-    return nullptr;
-}
-
-extern "C" const unsigned char* get_album_art_bytes(track_data* track_data, size_t size) {
-    auto* trackData = reinterpret_cast<TrackData*>(track_data);
-    auto bytes = trackData->GetAlbumArtBytes();
-    if (bytes) {
-        unsigned char *copy = new unsigned char[size];
-        if (size > bytes->size()) {
-            memcpy(copy, bytes->data(), bytes->size());
-        }
-        else {
-            memcpy(copy, bytes->data(), size);
-        }
-        
-        return copy;
-    }
-    return nullptr;
+    return ab;
 }
 
 extern "C" const bool has_album_art(track_data* track_data) {

@@ -9,6 +9,11 @@ typedef struct track_data track_data;
 extern "C" {
 #endif
 
+struct art_bytes {
+    unsigned char* data;
+    unsigned int size;
+};
+
 track_data *create_track_data(const char *track_path);
 
 void delete_track_data(track_data *track_path);
@@ -37,9 +42,7 @@ const int get_bitrate(track_data *track_data);
 
 const int get_sample_rate(track_data *track_data);
 
-const unsigned char *get_album_art_all_bytes(track_data *track_data);
-
-const unsigned char *get_album_art_bytes(track_data* track_data, size_t size);
+const art_bytes get_album_art_bytes(track_data* track_data);
 
 const int get_file_type(track_data *track_data);
 

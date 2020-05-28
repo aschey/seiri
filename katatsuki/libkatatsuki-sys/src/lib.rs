@@ -8,6 +8,12 @@ pub const true_: ::std::os::raw::c_uint = 1;
 pub struct track_data {
     _unused: [u8; 0],
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct art_bytes {
+    pub data: *const u8,
+    pub size: u32
+}
 extern "C" {
     pub fn create_track_data(track_path: *const ::std::os::raw::c_char)
      -> *mut track_data;
@@ -61,12 +67,8 @@ extern "C" {
      -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn get_album_art_all_bytes(track_data: *mut track_data)
-     -> *const ::std::os::raw::c_uchar;
-}
-extern "C" {
-    pub fn get_album_art_bytes(track_data: *mut track_data, size: usize)
-     -> *const ::std::os::raw::c_uchar;
+    pub fn get_album_art_bytes(track_data: *mut track_data)
+     -> art_bytes;
 }
 extern "C" {
     pub fn get_file_type(track_data: *mut track_data)

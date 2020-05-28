@@ -116,15 +116,18 @@ impl TrackData {
         unsafe { sys::has_album_art(self.raw) }
     }
 
-    pub unsafe fn cover_bytes(&self, size: usize) -> CoverBytes {
+    pub unsafe fn cover_bytes(&self) -> CoverBytes {
+        let val = sys::get_album_art_bytes(self.raw);
         CoverBytes {
-            raw: sys::get_album_art_bytes(self.raw, size) as *const u8,
+            raw: val.data,
+            size: val.size as i32
         }
     }
 }
 
 struct CoverBytes {
     raw: *const u8,
+    size: i32
 }
 
 impl Drop for CoverBytes {
@@ -173,15 +176,8 @@ impl Track {
                     let mut fch = 0;
                     let mut art: Vec<u8> = Vec::new();
                     if track.has_front_cover() {
-                        let bytes = unsafe { track.cover_bytes(384) };
-                        let slice = unsafe { from_raw_parts(bytes.raw, 384) };
-                        // match blob_size(slice) {
-                        //     Ok(size) => {
-                        //         fcw = size.width as i32;
-                        //         fch = size.height as i32;
-                        //     }
-                        //     Err(err) => println!("{:?}", err)
-                        // }
+                        let bytes = unsafe { track.cover_bytes() };
+                        let slice = unsafe { from_raw_parts(bytes.raw, bytes.size as usize) };
                         if let Ok(size) = blob_size(slice) {
                             fcw = size.width as i32;
                             fch = size.height as i32;
