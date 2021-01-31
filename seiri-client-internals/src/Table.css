@@ -12,12 +12,23 @@
   font-family: "Segoe UI", "Noto Sans CJK JP";
   color: #212121;
   background-clip: content-box;
+  box-sizing: border-box;
 }
 
-.selected {
-  background-color: #37474f;
+.selected, .ReactVirtualized__Table__Grid .table-row:not(.selected):hover {
+  background-color: #4e6570;
   color: white;
 }
+
+.selected.pivot {
+  background-color: #37474f;
+  color: white;
+} 
+
+.cursor {
+  box-shadow:inset 0px 0px 0px 1.1px #d6d6d6;
+}
+
 .table-container {
   height: 100%;
   width: 100%;
@@ -75,17 +86,8 @@
   color: rgba(255,255,255,0.7);
   -webkit-app-region: no-drag;
 }
-.DragHandle:hover {
+.DragHandleIcon:hover, .DragHandleIcon:active {
   background-color: rgba(0, 0, 0, 0.1);
-  -webkit-app-region: no-drag;
-
-}
-
-
-.DragHandleActive,
-.DragHandleActive:hover {
-  color: rgba(0, 0, 0, 0.6);
-  z-index: 3;
   -webkit-app-region: no-drag;
 
 }

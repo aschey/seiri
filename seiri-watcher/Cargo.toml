@@ -6,19 +6,12 @@ include = ["tools/**/*"]
 edition = "2018"
 
 [dependencies]
-rand = "0.4.2"
+rand = "0.7"
 walkdir = "2"
 threadpool = "1.7.1"
-# seiri = "2.0.2"
-crossbeam = "0.5.0"
+crossbeam = "0.8.0"
 leak = "0.1.2"
-
-[dependencies.rusqlite]
-version = "0.15.0"
-features = ["bundled", "functions"]
+seiri = "2.0.12"
 
 [dependencies.notify]
 path = "./notify"
-
-[dependencies.seiri]
-path = "../seiri-lib"

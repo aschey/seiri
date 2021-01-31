@@ -1,32 +1,41 @@
-import { orderBy as _, range } from "lodash";
-import * as Mousetrap from "mousetrap";
-import * as React from "react";
-import Draggable, { DraggableData } from "react-draggable";
-import { Dispatch } from "react-redux";
-import {
+import React from "react";
 
+import { orderBy as _, range, debounce } from "lodash";
+import Mousetrap from "mousetrap";
+import 'mousetrap-global-bind';
+import { DraggableData, DraggableCore } from "react-draggable";
+import { Dispatch } from "redux";
+import {
   Column,
   RowMouseEventHandlerParams,
   SortDirection,
   SortDirectionType,
   SortIndicator,
   Table,
+  TableCellRenderer,
   TableHeaderProps,
-  WindowScroller
+  WindowScroller,
+  WindowScrollerChildProps
 } from "react-virtualized";
 import "react-virtualized/styles.css"; // only needs to be imported once
 import { updateSelectedCount, updateTracksTick } from "./actions";
-import ElectronWindow from "./ElectronWindow";
-import seiri from "./seiri-neon";
 import "./Table.css";
 import { Track, TrackFileType } from "./types";
+import { fileTypeString, msToTime } from "./utility";
 
-declare var window: ElectronWindow;
+const toLodashDirection = (direction: SortDirectionType) => {
+  switch (direction) {
+    case "ASC":
+      return "asc";
+    case "DESC":
+      return "desc";
+  }
+}
 
 interface TrackTableProps {
   tracks: Track[];
   query: string;
-  dispatch: Dispatch<any>;
+  dispatch?: Dispatch<any>;
   hidden: boolean;
 }
 
@@ -35,18 +44,25 @@ interface TrackTableState {
   sortBy: string;
   sortDirection: SortDirectionType;
   sortedList: Track[];
-  selected: { [index: number]: boolean | undefined };
-  lastSelected: number | undefined;
+  selected: boolean[] | undefined;
+  cursor: number | undefined;
+  pivot: number | undefined;
+  prevTrackLength?: number;
+  prevQuery?: string;
+  scrollToRow?: number
 }
 
 const TOTAL_WIDTH = 3000;
 
 // tslint:disable:jsx-no-lambda
 class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
+  tableRef: React.RefObject<WindowScroller>;
+
   constructor(props: TrackTableProps) {
     super(props);
-    const sortBy = "album";
-    const sortDirection = SortDirection.ASC;
+    const sortBy = "updated";
+    const sortDirection = SortDirection.DESC;
+    this.tableRef = React.createRef<WindowScroller>();
     this.state = {
       // tslint:disable:object-literal-sort-keys
       widths: {
@@ -69,24 +85,30 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
       },
       sortBy,
       sortDirection,
-      sortedList: this.sortList({ list: this.props.tracks, sortBy, sortDirection }),
+      sortedList: TrackTable.sortList({ list: this.props.tracks, sortBy, sortDirection }),
       selected: [],
-      lastSelected: undefined
+      cursor: undefined,
+      pivot: undefined,
     };
-    Mousetrap.bind(['command+r', 'ctrl+r'], () => {
-      // tslint:disable-next-line:no-console
-      console.log("bound!")
+    const keyDown = debounce(this.keyDownEventHandler).bind(this)
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        event.preventDefault();
+        keyDown(event);
+      }
+    });
+    Mousetrap.bindGlobal(['command+r', 'ctrl+r'], () => {
       const tracksToRefresh = this.state.sortedList.filter(
-        (track, index) => this.state.selected[index] === true
-      ).map(track => track.filePath)
+        (_track, index) => this.state.selected?.[index] === true
+      ).map(track => track.filePath);
 
-      seiri.refreshTracks(tracksToRefresh)
+      window.seiri.refreshTracks(tracksToRefresh)
       // tslint:disable-next-line:no-console
-      console.log("REFRESHED!");
+      // console.log("REFRESHED!");
       // tslint:disable-next-line:no-console
-      console.log(tracksToRefresh);
-      this.setState({ selected: [] })
-      this.props.dispatch!(updateTracksTick.action())
+      // console.log(tracksToRefresh);
+      this.setState(this.asSelected([], undefined, undefined));
+      this.props.dispatch?.(updateTracksTick.action({}));
       return false;
     });
     this.rowClassName = this.rowClassName.bind(this);
@@ -100,30 +122,103 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
     this.hasCoverArtCellRenderer = this.hasCoverArtCellRenderer.bind(this);
   }
 
-  public componentWillUpdate(nextProps: TrackTableProps, nextState: TrackTableState) {
-    this.props.dispatch(updateSelectedCount({ count: (nextState.selected as boolean[]).filter(s => s).length }));
+  keyDownEventHandler(event: KeyboardEvent) {
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        event.preventDefault();
+        let newSelected = this.state.cursor
+        if (newSelected === undefined) {
+          newSelected = 0
+        } else {
+          if (event.key === "ArrowDown") newSelected++;
+          if (event.key === "ArrowUp") newSelected--;
+
+          if (newSelected < 0) newSelected = 0;
+          if (newSelected >= this.props.tracks.length) newSelected = this.props.tracks.length - 1;
+        }
+
+        if (event.shiftKey) {
+          // everything between the cursor and the pivot is selected.
+          let newSelectionKeys = [];
+          const selected = [];
+          const lastSelected = this.state.pivot ?? newSelected;
+
+          if (newSelected > lastSelected) {
+            newSelectionKeys = range(lastSelected, newSelected + 1);
+          } else {
+            newSelectionKeys = range(newSelected, lastSelected + 1);
+          }
+          
+          for (const key of newSelectionKeys) {
+            selected[key] = true;
+          }
+          
+          this.setState({
+              scrollToRow: newSelected, 
+              ...this.asSelected(selected, newSelected, this.state.pivot ?? newSelected)
+            });
+          return;
+        } else if (event.ctrlKey) {
+          this.setState({  scrollToRow: newSelected, cursor: newSelected });
+          
+        } else {
+          const clearState = [];
+          clearState[newSelected] = true;
+          this.setState({scrollToRow: newSelected, ...this.asSelected(clearState, newSelected, newSelected)});
+        }
+      }
+  }
+  asSelected(selected: boolean[], cursor: number | undefined, pivot: number | undefined) 
+  {
+    return { selected, cursor, pivot }
   }
 
-  public componentWillReceiveProps(newProps: TrackTableProps) {
+  UNSAFE_componentWillReceiveProps(newProps: TrackTableProps) {
     const { sortBy, sortDirection } = this.state;
     if (newProps.query !== this.props.query || newProps.tracks.length !== this.props.tracks.length) {
       this.setState({
-        sortedList: this.sortList({ list: newProps.tracks, sortBy, sortDirection }),
+        sortedList: TrackTable.sortList({ list: newProps.tracks, sortBy, sortDirection }),
         selected: [],
-        lastSelected: undefined
+        cursor: undefined,
+        pivot: undefined,
       });
     } else {
-      this.setState({ sortedList: this.sortList({ list: newProps.tracks, sortBy, sortDirection }) });
+      this.setState({ sortedList: TrackTable.sortList({ list: newProps.tracks, sortBy, sortDirection }) });
     }
   }
 
-  private rowClassName({ index }: { index: number }) {
+  // static getDerivedStateFromProps(newProps: TrackTableProps, prevState: TrackTableState) 
+  // {
+  //   const { sortBy, sortDirection, prevQuery, prevTrackLength } = prevState;
+
+  //   // Need this so setting selected stuff actually works
+  //   if (newProps.query !== prevQuery || newProps.tracks.length !== prevTrackLength) {
+  //     newProps.dispatch?.(updateSelectedCount({ count: 0 }))
+  //     return { 
+  //       sortedList: TrackTable.sortList({ list: newProps.tracks, sortBy, sortDirection }),
+  //       selected: [],
+  //       cursor: undefined, 
+  //       pivot: undefined,
+  //       prevQuery: newProps.query,
+  //       prevTrackLength: newProps.tracks.length
+  //     }
+  //   } else {
+  //     return { sortedList: TrackTable.sortList({ list: newProps.tracks, sortBy, sortDirection }) }
+  //   }
+  // }
+
+  rowClassName({ index }: { index: number }) {
     if (index < 0) {
       return "table-row table-header";
     }
     let tableRowClass = "table-row";
-    if (!!this.state.selected[index]) {
+    if (!!this.state.selected?.[index]) {
       tableRowClass += " selected";
+    }
+    if (this.state.cursor === index) {
+      tableRowClass += " cursor";
+    }
+    if (this.state.pivot === index) {
+      tableRowClass += " pivot";
     }
     if (index % 2 === 0) {
       tableRowClass += " evenRow";
@@ -132,50 +227,58 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
     }
     return tableRowClass;
   }
+  
+  UNSAFE_componentWillUpdate(nextProps: TrackTableProps, nextState: TrackTableState) {
+    this.props.dispatch?.(updateSelectedCount({ count: nextState.selected?.filter(s => s).length ?? 0 }));
+  }
 
-  private rowGetter = ({ index }: { index: number }) =>
+  rowGetter = ({ index }: { index: number }) =>
     this.getDatum(this.state.sortedList, index);
 
-  private getDatum(list: Track[], index: number) {
+  getDatum(list: Track[], index: number) {
     return list[index] || {};
   }
 
-  private sort({
+  sort({
     sortBy,
     sortDirection
   }: {
-      sortBy: string;
-      sortDirection: SortDirectionType;
-    }) {
-    const sortedList = this.sortList({ list: this.props.tracks, sortBy, sortDirection });
+    sortBy: string;
+    sortDirection: SortDirectionType;
+  }) {
+    const sortedList = TrackTable.sortList({ list: this.props.tracks, sortBy, sortDirection });
 
-    this.setState({ sortBy, sortDirection, sortedList });
+    this.setState({ 
+      sortBy, sortDirection, sortedList,
+      ...this.asSelected([], undefined, undefined)
+    });
   }
 
-  private sortList({
+  static sortList({
     list,
     sortBy,
     sortDirection
   }: {
-      list: Track[];
-      sortBy: string;
-      sortDirection: SortDirectionType;
-    }) {
+    list: Track[];
+    sortBy: string;
+    sortDirection: SortDirectionType;
+  }) {
     return _(
       list,
       [sortBy, "album", "tracknumber"],
-      sortDirection.toLowerCase()
+      [toLodashDirection(sortDirection), "asc", "asc"]
     );
   }
 
-  private headerResizeHandler(dataKey: string, event: MouseEvent, { deltaX }: DraggableData) {
+  headerResizeHandler(dataKey: string, event: MouseEvent, { deltaX }: DraggableData) {
+
     this.resizeRow({
       dataKey,
       deltaX
     })
   }
 
-  private headerRenderer = ({
+  headerRenderer = ({
     columnData,
     dataKey,
     disableSort,
@@ -189,27 +292,24 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
           <span className="table-header-label">{label}</span>
         </div>
         {sortBy === dataKey && <SortIndicator sortDirection={sortDirection} />}
-        <Draggable
-          axis="x"
-          defaultClassName="DragHandle"
-          defaultClassNameDragging="DragHandleActive"
-          // tslint:disable-next-line:jsx-no-bind
+        <DraggableCore
+          handle=".DragHandleIcon"
+          scale={0.5}
           onDrag={this.headerResizeHandler.bind(this, dataKey)}
-          position={{ x: 0 } as any}
         >
           <span className="DragHandleIcon">⋮</span>
-        </Draggable>
+        </DraggableCore>
       </React.Fragment>
     );
   };
 
-  private resizeRow = ({
+  resizeRow = ({
     dataKey,
     deltaX
   }: {
-      dataKey: string;
-      deltaX: number;
-    }) => {
+    dataKey: string;
+    deltaX: number;
+  }) => {
     window.requestAnimationFrame(() => {
       this.setState(prevState => {
         const prevWidths = prevState.widths;
@@ -229,100 +329,26 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
     });
   };
 
-  private msToTime(ms: number) {
-    const minutes = Math.floor(ms / 60000);
-    const seconds = ((ms % 60000) / 1000).toFixed(0);
-    return minutes + ":" + (Number(seconds) < 10 ? "0" : "") + seconds;
-  }
-
-  private fileTypeString(fileType: TrackFileType) {
-    switch (fileType) {
-      case TrackFileType.FLAC:
-        return "FLAC";
-      case TrackFileType.FLAC4:
-        return "FLAC (4-bit)";
-      case TrackFileType.FLAC8:
-        return "FLAC (8-bit)";
-      case TrackFileType.FLAC16:
-        return "FLAC (16-bit)";
-      case TrackFileType.FLAC24:
-        return "FLAC (24-bit Hi-Res)";
-      case TrackFileType.FLAC32:
-        return "FLAC (32-bit Integral)";
-      case TrackFileType.MP3CBR:
-        return "MP3 (Constant Bitrate)";
-      case TrackFileType.MP3VBR:
-        return "MP3 (Variable Bitrate)";
-      case TrackFileType.AAC:
-        return "AAC (M4A Audio)";
-      case TrackFileType.ALAC:
-        return "Apple Lossless";
-      case TrackFileType.ALAC16:
-        return "Apple Lossless (16-bit)";
-      case TrackFileType.ALAC24:
-        return "Apple Lossless (24-bit Hi-Res)";
-      case TrackFileType.AIFF:
-        return "AIFF (PCM Audio)";
-      case TrackFileType.AIFF4:
-        return "AIFF (4-bit PCM)"
-      case TrackFileType.AIFF8:
-        return "AIFF (8-bit PCM)"
-      case TrackFileType.AIFF16:
-        return "AIFF (16-bit PCM)"
-      case TrackFileType.AIFF24:
-        return "AIFF (24-bit PCM)"
-      case TrackFileType.AIFF32:
-        return "AIFF (32-bit PCM)"
-      case TrackFileType.Opus:
-        return "Opus";
-      case TrackFileType.Vorbis:
-        return "Vorbis";
-      case TrackFileType.MonkeysAudio:
-        return "Monkey's Audio";
-      case TrackFileType.MonkeysAudio16:
-        return "Monkey's Audio (16-bit)";
-      case TrackFileType.MonkeysAudio24:
-        return "Monkey's Audio (24-bit)";
-      case TrackFileType.Unknown:
-        return "Unknown";
-      default:
-        return "";
-    }
-  }
-
-  private handleDoubleClick(event: RowMouseEventHandlerParams) {
-    const track: Track = event.rowData as any;
-    const path = window.require<any>("path");
-    const open = window.require<any>("electron").remote.require('opn');
-    const child = window.require<any>("child_process");
-    // explicitly use exporer on windows.
-    if (window.require<any>('process').platform === 'win32') {
-      // open(path.dirname(track.filePath), {app: 'explorer'});
-      // tslint:disable-next-line:no-console
-      console.log("win32!");
-      child.spawn("explorer", [path.dirname(track.filePath)], {detached: true})
-    } else {
-            // tslint:disable-next-line:no-console
-      open(path.dirname(track.filePath));
-    }
+  handleDoubleClick(event: RowMouseEventHandlerParams) {
+    const track: Track = event.rowData;
+    window.seiri.openTrackFolder(track);
   }
 
   // tslint:disable:no-shadowed-variable
-  private handleClick(event: RowMouseEventHandlerParams) {
-    // tslint:disable-next-line:no-console
-    const mouseEvent = event.event as React.MouseEvent<any>;
-    if (this.state.lastSelected === undefined) {
-      const newSelection = !!!this.state.selected[event.index];
+  handleClick(event: RowMouseEventHandlerParams) {
+    const mouseEvent = event.event;
+    if (this.state.pivot === undefined) {
+      const newSelection = !!!this.state.selected?.[event.index];
       const clearState = [];
       clearState[event.index] = newSelection;
-      this.setState({ selected: clearState, lastSelected: event.index });
+      this.setState(this.asSelected(clearState, event.index, event.index));
       return;
     }
     if (mouseEvent.shiftKey) {
       // const selectedIndexes = Object.keys(this.state.selected) as any as number[];
       let newSelectionKeys = [];
       const selected = [];
-      const lastSelected = this.state.lastSelected;
+      const lastSelected = this.state.pivot;
       if (event.index > lastSelected) {
         newSelectionKeys = range(lastSelected, event.index + 1);
       } else {
@@ -331,39 +357,41 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
       for (const key of newSelectionKeys) {
         selected[key] = true;
       }
-      this.setState({ selected });
+      this.setState(this.asSelected(selected, event.index, this.state.pivot));
       return;
     }
     if (mouseEvent.ctrlKey) {
       const selected = this.state.selected;
-      // tslint:disable-next-line:no-console
-      console.log(event.index);
-      selected[event.index] = !!!this.state.selected[event.index];
-      this.setState({ selected, lastSelected: event.index });
+      if (selected) {
+        selected[event.index] = !!!this.state.selected?.[event.index];
+        this.setState(this.asSelected(selected, event.index, event.index));
+      }
       return;
     }
-    const newSelection = !!!this.state.selected[event.index];
+    
+    const newSelection = this.state.pivot !== event.index;
     const clearState = [];
     clearState[event.index] = newSelection;
-    this.setState({ selected: clearState, lastSelected: event.index });
+    this.setState(this.asSelected(clearState, event.index, newSelection ? event.index : undefined));
     return;
   }
 
-  private albumArtistCellRenderer = ({ cellData } : { cellData: any }) => (cellData || []).join(";") 
-  private durationCellRenderer = ({ cellData } : { cellData: any }) => this.msToTime(cellData)
-  private fileTypeCellRenderer = ({ cellData } : { cellData: any }) => this.fileTypeString(cellData)
-  private hasCoverArtCellRenderer = ({ cellData } : { cellData: any}) => (cellData ? "Yes" : "No")
+  albumArtistCellRenderer: TableCellRenderer = ({ cellData }: { cellData?: string[] }) => (cellData || []).join(";")
+  durationCellRenderer: TableCellRenderer = ({ cellData }: { cellData?: number }) => msToTime(cellData ?? 0)
+  fileTypeCellRenderer: TableCellRenderer = ({ cellData }: { cellData?: TrackFileType }) => fileTypeString(cellData ?? TrackFileType.Unknown)
+  hasCoverArtCellRenderer: TableCellRenderer = ({ cellData }: { cellData?: boolean }) => (cellData ? "Yes" : "No")
   // tslint:disable-next-line:member-ordering
-  public render() {
+  render() {
     return (
       <div className={this.props.hidden ? "table-container hidden" : "table-container"}>
-        <WindowScroller>
-          {({ height, isScrolling, registerChild, scrollTop }) => (
+        <WindowScroller ref={this.tableRef}>
+          {({ height, isScrolling, scrollTop, onChildScroll }: Pick<WindowScrollerChildProps, "height" | "isScrolling" | "scrollTop" | "onChildScroll">) => (
             <Table
-              // tslint:disable-next-line:jsx-no-string-ref
               autoHeight={true}
               isScrolling={isScrolling}
               scrollTop={scrollTop}
+              onScroll={onChildScroll}
+              scrollToIndex={this.state.scrollToRow}
               className="Table"
               rowClassName={this.rowClassName}
               headerClassName="table-header"
@@ -409,21 +437,21 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
                 width={this.state.widths.albumArtists * TOTAL_WIDTH}
                 label="Album Artists"
                 dataKey="albumArtists"
-                cellRenderer={this.albumArtistCellRenderer as any}
+                cellRenderer={this.albumArtistCellRenderer}
               />
               <Column
                 headerRenderer={this.headerRenderer}
                 width={this.state.widths.duration * TOTAL_WIDTH}
                 label="Duration"
                 dataKey="duration"
-                cellRenderer={this.durationCellRenderer as any}
+                cellRenderer={this.durationCellRenderer}
               />
               <Column
                 headerRenderer={this.headerRenderer}
                 width={this.state.widths.fileType * TOTAL_WIDTH}
                 label="File Type"
                 dataKey="fileType"
-                cellRenderer={this.fileTypeCellRenderer as any}
+                cellRenderer={this.fileTypeCellRenderer}
               />
               <Column
                 headerRenderer={this.headerRenderer}
@@ -442,7 +470,7 @@ class TrackTable extends React.Component<TrackTableProps, TrackTableState> {
                 width={this.state.widths.hasCoverArt * TOTAL_WIDTH}
                 label="Art"
                 dataKey="hasFrontCover"
-                cellRenderer={this.hasCoverArtCellRenderer as any}
+                cellRenderer={this.hasCoverArtCellRenderer}
               />
               <Column
                 headerRenderer={this.headerRenderer}

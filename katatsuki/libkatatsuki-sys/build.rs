@@ -1,13 +1,9 @@
-extern crate cmake;
-extern crate bindgen;
-
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
   let dst = if cfg!(target_os = "windows") {
     cmake::Config::new("libkatatsuki")
-            //  .generator("NMake Makefiles")
               .build_target("katatsuki")
               .static_crt(true)
               .cxxflag("/MT")

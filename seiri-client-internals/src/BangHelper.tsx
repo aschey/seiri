@@ -1,11 +1,11 @@
-import * as React from "react";
 // @ts-ignore
-import * as Markdown from "react-remarkable";
+import Markdown from "react-markdown";
 import './BangHelper.css';
 
-const helper = ({hidden}: {hidden: boolean}) => (
+const helper = ({ hidden }: { hidden: boolean }) => (
   <div className={hidden ? "bang-help hidden" : "bang-help"}>
-    <Markdown>{`
+    <div>
+      <Markdown>{`
 # *seiri* Bang Reference
 Bangs can be used to query your library in more specific ways. Bangs start with an exclamation mark, and
 take a parameter enclosed in curly braces, for example
@@ -51,7 +51,7 @@ shorthand for **true**, for example **!dup\`** translates to **!dup{true}**.
 
 **!dup** *Duplicate tracks* 
 
-**!mb** *Tracks have MusicBrainz ID ag* 
+**!mb** *Tracks have MusicBrainz ID tag* 
 
 **!c** *Tracks have cover art tag* 
 
@@ -77,13 +77,14 @@ These tags take in a date in the form **YYYY-MM-DD**.
 **!ubf / !uaf** *Updated (before / after)*
 
 ## Advanced Usage
-Bangs can also be combined usin the grouping bang, and logical operators.
+Bangs can also be combined using the grouping bang, and logical operators.
 
 For example, **!!{!t{Hotel California} & !ar{The Eagles}} | !!{!t{Hey Jude} & !ar{The Beatles}}** will look for
 tracks with the title "Hotel California" and the artist "The Eagles", or tracks with the title "Hey Jude" and 
 the artist "The Beatles".
     `}
-    </Markdown>
+      </Markdown>
+    </div>
   </div>
 );
 
