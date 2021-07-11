@@ -24,7 +24,7 @@ extern "C" {
     pub fn free_allocated_data(data: *mut ::std::os::raw::c_void);
 }
 extern "C" {
-    pub fn save();
+    pub fn save(track_path: *mut track_data);
 }
 extern "C" {
     pub fn get_title(track_path: *mut track_data) -> *const ::std::os::raw::c_char;

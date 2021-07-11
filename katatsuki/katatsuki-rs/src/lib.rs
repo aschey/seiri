@@ -58,7 +58,7 @@ impl TrackData {
 
     pub fn save(&self) {
         unsafe {
-            sys::save();
+            sys::save(self.raw);
         }
     }
 
