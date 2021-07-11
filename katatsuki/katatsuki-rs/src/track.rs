@@ -1,24 +1,24 @@
+use enum_primitive_derive::Primitive;
 use std::path::PathBuf;
 use std::str::FromStr;
-use enum_primitive_derive::Primitive;
+
+use crate::TrackData;
 
 #[derive(Debug, Primitive)]
 /// The File Type of the Track.
 /// TrackFileType discriminates on bitrates for lossless files, but
-/// does not for lossy files. 
+/// does not for lossy files.
 pub enum TrackFileType {
-
     /// Unknown file type.
     Unknown = 0,
 
     // For backwards compatibility purposes, the following have to hold
     // FLAC16 = 3, FLAC_32 = 5, CBR = 7, VBR = 8, AAC = 9.
-    // This is mostly for my own personal usage, but 
+    // This is mostly for my own personal usage, but
     // that's all that really matters at this stage isn't it?
 
     // The FLAC range is [1, 6]
     // Dummy for switching on.
-
     /// FLAC with a 4-bit bitrate is invalid, but this format exists for
     /// backwards compatibility purposes with other language implementations
     /// of katatsuki.
@@ -41,7 +41,6 @@ pub enum TrackFileType {
     FLAC = 6,
 
     // The lossy range is [7, 11]
-
     /// Constant bit rate MP3.
     MP3CBR = 7,
 
@@ -80,7 +79,7 @@ pub enum TrackFileType {
     MonkeysAudio = 24,
 
     /// Generic for matching, this is not actually a valid return from katatsuki.
-    /// Exists for 
+    /// Exists for
     MP3 = 780,
 }
 
@@ -105,11 +104,21 @@ pub struct Track {
     pub disc_number: i32,
     pub duration: i32,
     pub updated: String,
-    pub album_art: Vec<u8>
+    pub album_art: Vec<u8>,
+    pub(crate) track_data: TrackData,
 }
 
-/// Converts a lowercase string representation of a 
-/// `TrackFileType` to its representation. If a 
+impl Track {
+    pub fn save(&self) {
+        self.track_data.save();
+    }
+    pub fn set_title(&self, title: &str) {
+        self.track_data.set_title(title);
+    }
+}
+
+/// Converts a lowercase string representation of a
+/// `TrackFileType` to its representation. If a
 /// string does not match, returns `TrackFileType::Unknown`
 impl FromStr for TrackFileType {
     type Err = ();

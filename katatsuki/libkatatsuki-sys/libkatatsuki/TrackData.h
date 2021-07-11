@@ -6,14 +6,18 @@
 #include <optional>
 #include <memory>
 
-class TrackData {
+class TrackData
+{
 private:
 	std::shared_ptr<TagLib::FileRef> f;
+
 public:
-	TrackData(const char* track_path);
-	virtual ~TrackData() {};
+	TrackData(const char *track_path);
+	virtual ~TrackData(){};
+	const void Save();
 	const enum track_file_type GetFileType();
 	const TagLib::String GetTitle();
+	const void SetTitle(const TagLib::String);
 	const TagLib::String GetArtist();
 	const TagLib::String GetAlbumArtists();
 	const TagLib::String GetAlbum();

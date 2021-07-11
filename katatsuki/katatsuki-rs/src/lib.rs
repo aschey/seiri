@@ -1,9 +1,7 @@
 //! # Katatsuki
 //!
-//! `katatsuki` wraps [taglib2](https://taglib.org/) to allow safe access to 
+//! `katatsuki` wraps [taglib2](https://taglib.org/) to allow safe access to
 //! the metadata of various music files.
-
-
 
 use libkatatsuki_sys as sys;
 
@@ -41,14 +39,16 @@ fn c_str_to_str(c_str: *const c_char) -> Option<String> {
     result
 }
 
+#[derive(Debug)]
 struct TrackData {
     raw: *mut sys::track_data,
 }
 
-/// Unsafe backing 
+unsafe impl Send for TrackData {}
+/// Unsafe backing
 impl TrackData {
     // Dangerous access here, path not existing is UB.
-    /// Do not use `TrackData::new`, instead use `Track::from_path` to ensure 
+    /// Do not use `TrackData::new`, instead use `Track::from_path` to ensure
     /// safe access.
     pub fn new(path: &CString) -> TrackData {
         TrackData {
@@ -56,8 +56,23 @@ impl TrackData {
         }
     }
 
+    pub fn save(&self) {
+        unsafe {
+            sys::save();
+        }
+    }
+
     pub fn title(&self) -> String {
         c_str_to_str(unsafe { sys::get_title(self.raw) }).unwrap_or("".to_owned())
+    }
+
+    pub fn set_title(&self, title: &str) {
+        let c_str = CString::new(title).unwrap();
+        let ptr = c_str.as_ptr();
+
+        unsafe {
+            sys::set_title(self.raw, ptr);
+        }
     }
 
     pub fn artist(&self) -> String {
@@ -113,14 +128,14 @@ impl TrackData {
         let val = sys::get_album_art_bytes(self.raw);
         CoverBytes {
             raw: val.data,
-            size: val.size as i32
+            size: val.size as i32,
         }
     }
 }
 
 struct CoverBytes {
     raw: *const u8,
-    size: i32
+    size: i32,
 }
 
 impl Drop for CoverBytes {
@@ -131,7 +146,10 @@ impl Drop for CoverBytes {
 
 impl Drop for TrackData {
     fn drop(&mut self) {
-        unsafe { sys::delete_track_data(self.raw) }
+        unsafe {
+            sys::delete_track_data(self.raw);
+            self.raw.drop_in_place();
+        }
     }
 }
 
@@ -208,7 +226,8 @@ impl Track {
                         disc_number: track.disc_number() as i32,
                         duration: track.duration() as i32,
                         updated: Local::now().format("%Y-%m-%d").to_string(),
-                        album_art: art
+                        album_art: art,
+                        track_data: track,
                     });
                     drop(path_ptr);
                     track
