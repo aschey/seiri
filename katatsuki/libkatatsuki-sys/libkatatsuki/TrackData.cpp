@@ -57,6 +57,11 @@ const TagLib::String TrackData::GetArtist()
   return f->tag()->artist();
 }
 
+const void TrackData::SetArtist(const TagLib::String artist)
+{
+  f->tag()->setArtist(artist);
+}
+
 const unsigned int TrackData::GetYear()
 {
   return f->tag()->year();

@@ -52,6 +52,12 @@ extern "C" const char *get_artist(track_data *track_data)
     return strdup(trackData->GetArtist().to8Bit(true).c_str());
 }
 
+extern "C" void set_artist(track_data *track_data, const char *artist)
+{
+    auto *trackData = reinterpret_cast<TrackData *>(track_data);
+    trackData->SetArtist(TagLib::String(artist, TagLib::String::UTF8));
+}
+
 extern "C" const char *get_album_artist(track_data *track_data)
 {
     auto *trackData = reinterpret_cast<TrackData *>(track_data);

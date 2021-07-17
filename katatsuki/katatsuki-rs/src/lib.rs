@@ -79,6 +79,15 @@ impl TrackData {
         c_str_to_str(unsafe { sys::get_artist(self.raw) }).unwrap_or("".to_owned())
     }
 
+    pub fn set_artist(&self, artist: &str) {
+        let c_str = CString::new(artist).unwrap();
+        let ptr = c_str.as_ptr();
+
+        unsafe {
+            sys::set_artist(self.raw, ptr);
+        }
+    }
+
     pub fn album(&self) -> String {
         c_str_to_str(unsafe { sys::get_album(self.raw) }).unwrap_or("".to_owned())
     }

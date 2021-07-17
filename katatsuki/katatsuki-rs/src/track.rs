@@ -115,6 +115,9 @@ impl Track {
     pub fn set_title(&self, title: &str) {
         self.track_data.set_title(title);
     }
+    pub fn set_artist(&self, artist: &str) {
+        self.track_data.set_artist(artist);
+    }
 }
 
 /// Converts a lowercase string representation of a

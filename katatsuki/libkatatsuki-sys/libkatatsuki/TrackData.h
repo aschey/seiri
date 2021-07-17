@@ -19,6 +19,7 @@ public:
 	const TagLib::String GetTitle();
 	const void SetTitle(const TagLib::String);
 	const TagLib::String GetArtist();
+	const void SetArtist(const TagLib::String);
 	const TagLib::String GetAlbumArtists();
 	const TagLib::String GetAlbum();
 	const TagLib::String GetMusicBrainzTrackId();

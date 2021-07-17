@@ -36,6 +36,9 @@ extern "C" {
     pub fn get_artist(track_data: *mut track_data) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn set_artist(track_path: *mut track_data, artist: *const ::std::os::raw::c_char);
+}
+extern "C" {
     pub fn get_album_artist(track_data: *mut track_data) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
