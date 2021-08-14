@@ -242,6 +242,14 @@ const TagLib::String TrackData::GetAlbumArtists()
   return TagLib::String();
 }
 
+const void TrackData::SetAlbumArtists(const TagLib::String albumArtists)
+{
+  auto albumArtistList = albumArtists.split(";");
+  auto props = f->tag()->properties();
+  props.replace("ALBUMARTIST", albumArtistList);
+  f->tag()->setProperties(props);
+}
+
 const TagLib::String TrackData::GetMusicBrainzTrackId()
 {
   if (!f->tag()->properties()["MUSICBRAINZ_TRACKID"].isEmpty())

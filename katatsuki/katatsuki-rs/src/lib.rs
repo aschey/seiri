@@ -93,7 +93,16 @@ impl TrackData {
     }
 
     pub fn album_artists(&self) -> String {
-        c_str_to_str(unsafe { sys::get_album_artist(self.raw) }).unwrap_or("".to_owned())
+        c_str_to_str(unsafe { sys::get_album_artists(self.raw) }).unwrap_or("".to_owned())
+    }
+
+    pub fn set_album_artists(&self, album_artists: &str) {
+        let c_str = CString::new(album_artists).unwrap();
+        let ptr = c_str.as_ptr();
+
+        unsafe {
+            sys::set_album_artists(self.raw, ptr);
+        }
     }
 
     pub fn musicbrainz_track_id(&self) -> Option<String> {
