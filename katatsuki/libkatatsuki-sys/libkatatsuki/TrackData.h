@@ -23,6 +23,7 @@ public:
 	const TagLib::String GetAlbumArtists();
 	const void SetAlbumArtists(const TagLib::String);
 	const TagLib::String GetAlbum();
+	const void SetAlbum(const TagLib::String);
 	const TagLib::String GetMusicBrainzTrackId();
 	const unsigned int GetYear();
 	const unsigned int GetTrackNumber();

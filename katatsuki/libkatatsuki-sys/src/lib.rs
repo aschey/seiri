@@ -51,6 +51,9 @@ extern "C" {
     pub fn get_album(track_data: *mut track_data) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn set_album(track_path: *mut track_data, album: *const ::std::os::raw::c_char);
+}
+extern "C" {
     pub fn get_musicbrainz_track_id(track_data: *mut track_data) -> *const ::std::os::raw::c_char;
 }
 extern "C" {

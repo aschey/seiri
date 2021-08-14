@@ -121,6 +121,9 @@ impl Track {
     pub fn set_album_artists(&self, album_artists: &str) {
         self.track_data.set_album_artists(album_artists);
     }
+    pub fn set_album(&self, album: &str) {
+        self.track_data.set_album(album);
+    }
 }
 
 /// Converts a lowercase string representation of a

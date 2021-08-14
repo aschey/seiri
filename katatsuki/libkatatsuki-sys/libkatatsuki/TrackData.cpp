@@ -233,6 +233,11 @@ const TagLib::String TrackData::GetAlbum()
   return f->tag()->album();
 }
 
+const void TrackData::SetAlbum(const TagLib::String album)
+{
+  f->tag()->setAlbum(album);
+}
+
 const TagLib::String TrackData::GetAlbumArtists()
 {
   if (!f->tag()->properties()["ALBUMARTIST"].isEmpty())
