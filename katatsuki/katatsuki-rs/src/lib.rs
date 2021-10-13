@@ -215,14 +215,10 @@ impl Track {
                     let track = Ok(Track {
                         file_path: path.to_owned(),
                         file_type: track.file_type(),
-                        title: track.title(),
-                        artist: track.artist(),
-                        album: track.album(),
-                        album_artists: track
-                            .album_artists()
-                            .split(';')
-                            .map(|c| c.to_owned())
-                            .collect::<Vec<String>>(),
+                        title: track.title().trim().to_string(),
+                        artist: track.artist().trim().to_string(),
+                        album: track.album().trim().to_string(),
+                        album_artists: track.album_artists().trim().to_string(),
                         year: track.year() as i32,
                         track_number: track.track_number() as i32,
                         musicbrainz_track_id: track.musicbrainz_track_id(),

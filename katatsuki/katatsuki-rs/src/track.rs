@@ -90,7 +90,7 @@ pub struct Track {
     pub file_type: TrackFileType,
     pub title: String,
     pub artist: String,
-    pub album_artists: Vec<String>,
+    pub album_artists: String,
     pub album: String,
     pub year: i32,
     pub track_number: i32,
