@@ -1,4 +1,5 @@
 use enum_primitive_derive::Primitive;
+use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -83,7 +84,9 @@ pub enum TrackFileType {
     MP3 = 780,
 }
 
-#[derive(Debug)]
+static BINARY: &str = "(binary)";
+static EMPTY: &str = "(empty)";
+
 /// Represents a Track.
 pub struct Track {
     pub file_path: PathBuf,
@@ -108,6 +111,39 @@ pub struct Track {
     pub(crate) track_data: TrackData,
 }
 
+impl fmt::Debug for Track {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Track")
+            .field("file_path", &self.file_path)
+            .field("file_type", &self.file_type)
+            .field("title", &self.title)
+            .field("artist", &self.artist)
+            .field("album_artists", &self.album_artists)
+            .field("album", &self.album)
+            .field("year", &self.year)
+            .field("track_number", &self.track_number)
+            .field("musicbrainz_track_id", &self.musicbrainz_track_id)
+            .field("has_front_cover", &self.has_front_cover)
+            .field("front_cover_height", &self.front_cover_height)
+            .field("front_cover_width", &self.front_cover_width)
+            .field("bitrate", &self.bitrate)
+            .field("sample_rate", &self.sample_rate)
+            .field("source", &self.source)
+            .field("disc_number", &self.disc_number)
+            .field("duration", &self.duration)
+            .field("updated", &self.updated)
+            .field(
+                "album_art",
+                if self.album_art.is_empty() {
+                    &EMPTY
+                } else {
+                    &BINARY
+                },
+            )
+            .finish()
+    }
+}
+
 impl Track {
     pub fn save(&self) {
         self.track_data.save();
@@ -117,6 +153,12 @@ impl Track {
     }
     pub fn set_artist(&self, artist: &str) {
         self.track_data.set_artist(artist);
+    }
+    pub fn set_album_artists(&self, album_artists: &str) {
+        self.track_data.set_album_artists(album_artists);
+    }
+    pub fn set_album(&self, album: &str) {
+        self.track_data.set_album(album);
     }
 }
 

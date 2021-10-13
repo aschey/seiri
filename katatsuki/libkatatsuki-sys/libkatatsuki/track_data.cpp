@@ -58,16 +58,28 @@ extern "C" void set_artist(track_data *track_data, const char *artist)
     trackData->SetArtist(TagLib::String(artist, TagLib::String::UTF8));
 }
 
-extern "C" const char *get_album_artist(track_data *track_data)
+extern "C" const char *get_album_artists(track_data *track_data)
 {
     auto *trackData = reinterpret_cast<TrackData *>(track_data);
     return strdup(trackData->GetAlbumArtists().to8Bit(true).c_str());
+}
+
+extern "C" void set_album_artists(track_data *track_data, const char *album_artists)
+{
+    auto *trackData = reinterpret_cast<TrackData *>(track_data);
+    trackData->SetAlbumArtists(TagLib::String(album_artists, TagLib::String::UTF8));
 }
 
 extern "C" const char *get_album(track_data *track_data)
 {
     auto *trackData = reinterpret_cast<TrackData *>(track_data);
     return strdup(trackData->GetAlbum().to8Bit(true).c_str());
+}
+
+extern "C" void set_album(track_data *track_data, const char *album)
+{
+    auto *trackData = reinterpret_cast<TrackData *>(track_data);
+    trackData->SetAlbum(TagLib::String(album, TagLib::String::UTF8));
 }
 
 extern "C" const char *get_musicbrainz_track_id(track_data *track_data)
