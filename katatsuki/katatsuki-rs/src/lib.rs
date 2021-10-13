@@ -10,6 +10,7 @@ use std::io::{Error, ErrorKind, Result};
 use std::os::raw::{c_char, c_void};
 use std::path::Path;
 use std::slice::from_raw_parts;
+use std::sync::Mutex;
 
 use chrono::Local;
 use imagesize::blob_size;
@@ -250,7 +251,7 @@ impl Track {
                         duration: track.duration() as i32,
                         updated: Local::now().format("%Y-%m-%d").to_string(),
                         album_art: art,
-                        track_data: track,
+                        track_data: Mutex::new(track),
                     });
                     drop(path_ptr);
                     track

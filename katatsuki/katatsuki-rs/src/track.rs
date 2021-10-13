@@ -2,6 +2,7 @@ use enum_primitive_derive::Primitive;
 use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::Mutex;
 
 use crate::TrackData;
 
@@ -108,7 +109,7 @@ pub struct Track {
     pub duration: i32,
     pub updated: String,
     pub album_art: Vec<u8>,
-    pub(crate) track_data: TrackData,
+    pub(crate) track_data: Mutex<TrackData>,
 }
 
 impl fmt::Debug for Track {
@@ -146,19 +147,22 @@ impl fmt::Debug for Track {
 
 impl Track {
     pub fn save(&self) {
-        self.track_data.save();
+        self.track_data.lock().unwrap().save();
     }
     pub fn set_title(&self, title: &str) {
-        self.track_data.set_title(title);
+        self.track_data.lock().unwrap().set_title(title);
     }
     pub fn set_artist(&self, artist: &str) {
-        self.track_data.set_artist(artist);
+        self.track_data.lock().unwrap().set_artist(artist);
     }
     pub fn set_album_artists(&self, album_artists: &str) {
-        self.track_data.set_album_artists(album_artists);
+        self.track_data
+            .lock()
+            .unwrap()
+            .set_album_artists(album_artists);
     }
     pub fn set_album(&self, album: &str) {
-        self.track_data.set_album(album);
+        self.track_data.lock().unwrap().set_album(album);
     }
 }
 
