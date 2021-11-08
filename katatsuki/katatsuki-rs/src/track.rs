@@ -1,12 +1,13 @@
 use enum_primitive_derive::Primitive;
 use std::fmt;
+use std::hash::Hash;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Mutex;
 
 use crate::TrackData;
 
-#[derive(Debug, Primitive)]
+#[derive(Debug, Primitive, Hash)]
 /// The File Type of the Track.
 /// TrackFileType discriminates on bitrates for lossless files, but
 /// does not for lossy files.
@@ -110,6 +111,30 @@ pub struct Track {
     pub updated: String,
     pub album_art: Vec<u8>,
     pub(crate) track_data: Mutex<TrackData>,
+}
+
+impl Hash for Track {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.file_path.hash(state);
+        self.file_type.hash(state);
+        self.title.hash(state);
+        self.artist.hash(state);
+        self.album_artists.hash(state);
+        self.album.hash(state);
+        self.year.hash(state);
+        self.track_number.hash(state);
+        self.musicbrainz_track_id.hash(state);
+        self.has_front_cover.hash(state);
+        self.front_cover_height.hash(state);
+        self.front_cover_width.hash(state);
+        self.bitrate.hash(state);
+        self.sample_rate.hash(state);
+        self.source.hash(state);
+        self.disc_number.hash(state);
+        self.duration.hash(state);
+        self.updated.hash(state);
+        self.album_art.hash(state);
+    }
 }
 
 impl fmt::Debug for Track {
