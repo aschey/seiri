@@ -3,7 +3,6 @@ use std::fmt;
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::Mutex;
 
 use crate::TrackData;
 
@@ -89,8 +88,8 @@ pub enum TrackFileType {
 static BINARY: &str = "(binary)";
 static EMPTY: &str = "(empty)";
 
-/// Represents a Track.
-pub struct Track {
+/// Represents a read-only Track.
+pub struct ReadOnlyTrack {
     pub file_path: PathBuf,
     pub file_type: TrackFileType,
     pub title: String,
@@ -110,10 +109,15 @@ pub struct Track {
     pub duration: i32,
     pub updated: String,
     pub album_art: Vec<u8>,
-    pub(crate) track_data: Mutex<TrackData>,
 }
 
-impl Hash for Track {
+/// Represents a writablle Track.
+pub struct ReadWriteTrack {
+    pub data: ReadOnlyTrack,
+    pub(crate) track_data: TrackData,
+}
+
+impl Hash for ReadOnlyTrack {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.file_path.hash(state);
         self.file_type.hash(state);
@@ -137,7 +141,7 @@ impl Hash for Track {
     }
 }
 
-impl fmt::Debug for Track {
+impl fmt::Debug for ReadOnlyTrack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Track")
             .field("file_path", &self.file_path)
@@ -170,24 +174,21 @@ impl fmt::Debug for Track {
     }
 }
 
-impl Track {
+impl ReadWriteTrack {
     pub fn save(&self) {
-        self.track_data.lock().unwrap().save();
+        self.track_data.save();
     }
     pub fn set_title(&self, title: &str) {
-        self.track_data.lock().unwrap().set_title(title);
+        self.track_data.set_title(title);
     }
     pub fn set_artist(&self, artist: &str) {
-        self.track_data.lock().unwrap().set_artist(artist);
+        self.track_data.set_artist(artist);
     }
     pub fn set_album_artists(&self, album_artists: &str) {
-        self.track_data
-            .lock()
-            .unwrap()
-            .set_album_artists(album_artists);
+        self.track_data.set_album_artists(album_artists);
     }
     pub fn set_album(&self, album: &str) {
-        self.track_data.lock().unwrap().set_album(album);
+        self.track_data.set_album(album);
     }
 }
 
